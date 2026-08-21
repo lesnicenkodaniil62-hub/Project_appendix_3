@@ -1,16 +1,19 @@
-# This is a sample Python script.
+"""
+Точка входа в веб-приложение.
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+Запуск:
+    python main.py
+"""
+
+from typing import NoReturn
+
+from src.backend.app import run_server
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def main() -> NoReturn:
+    """Запускает веб-приложение."""
+    run_server()
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    main()
