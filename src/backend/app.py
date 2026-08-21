@@ -1,5 +1,14 @@
 """
 Веб-приложение на стандартной библиотеке Python (http.server).
+
+Основной функционал:
+  - GET-запросы возвращают HTML-страницы из components/
+  - Отдаёт статические файлы (CSS, JS, изображения)
+  - POST-запрос принимает данные формы и выводит их в консоль
+  - Обработка ошибок 404 и 500
+
+Запуск:
+    python main.py
 """
 
 import mimetypes
@@ -8,6 +17,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
+# ---------------------------------------------------------------------------
+# Пути к файлам
+# ---------------------------------------------------------------------------
 BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_COMPONENTS: str = os.path.join(BASE_DIR, "frontend", "components")
 FRONTEND_STATIC: str = os.path.join(BASE_DIR, "frontend")
@@ -16,23 +28,54 @@ HOST: str = "127.0.0.1"
 PORT: int = 8000
 
 
+# ---------------------------------------------------------------------------
+# Вспомогательные функции
+# ---------------------------------------------------------------------------
 def read_html(filename: str) -> str:
-    """Читает HTML-файл через контекстный менеджер."""
+    """
+    Читает HTML-файл через контекстный менеджер.
+
+    Args:
+        filename: Имя файла в папке components
+
+    Returns:
+        Содержимое файла в виде строки
+
+    Raises:
+        FileNotFoundError: Если файл не найден
+    """
     filepath: str = os.path.join(FRONTEND_COMPONENTS, filename)
     with open(filepath, "r", encoding="utf-8") as file:
         return file.read()
 
 
 def read_static_file(relative_path: str) -> bytes:
-    """Читает статический файл."""
+    """
+    Читает статический файл (CSS, JS, изображения).
+
+    Args:
+        relative_path: Относительный путь к файлу
+
+    Returns:
+        Содержимое файла в виде байтов
+
+    Raises:
+        FileNotFoundError: Если файл не найден
+        PermissionError: Если путь выходит за пределы frontend/
+    """
     relative_path = relative_path.lstrip("/")
+
+    # Убираем префикс "src/frontend/" если он есть
     prefix: str = "src/frontend/"
     if relative_path.startswith(prefix):
-        relative_path = relative_path[len(prefix) :]
+        relative_path = relative_path[len(prefix):]
 
     filepath: str = os.path.join(FRONTEND_STATIC, relative_path)
 
-    if not os.path.abspath(filepath).startswith(os.path.abspath(FRONTEND_STATIC)):
+    # Проверка безопасности
+    if not os.path.abspath(filepath).startswith(
+        os.path.abspath(FRONTEND_STATIC)
+    ):
         raise PermissionError("Доступ за пределы frontend/ запрещён")
 
     with open(filepath, "rb") as file:
@@ -40,53 +83,128 @@ def read_static_file(relative_path: str) -> bytes:
 
 
 def get_content_type(filepath: str) -> str:
-    """Определяет MIME-тип файла."""
+    """
+    Определяет MIME-тип файла.
+
+    Args:
+        filepath: Путь к файлу
+
+    Returns:
+        MIME-тип файла
+    """
     mime_type: Optional[str] = mimetypes.guess_type(filepath)[0]
     return mime_type or "application/octet-stream"
 
 
 def build_404_page() -> str:
-    """Возвращает HTML-страницу 404."""
-    return """<!DOCTYPE html>
-<html lang="ru">
-<head><meta charset="UTF-8"><title>404</title>
-<link href="/src/frontend/css/bootstrap.min.css" rel="stylesheet">
-<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}.box{text-align:center;padding:40px;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}h1{font-size:6rem;color:#3b7ddd;margin:0}</style>
-</head><body><header></header><main><div class="box"><h1>404</h1><p>Страница не найдена</p><a href="/">← На главную</a></div></main><footer></footer></body></html>"""
+    """
+    Возвращает HTML-страницу 404.
+
+    Returns:
+        HTML-строка страницы 404
+    """
+    html_parts: List[str] = [
+        "<!DOCTYPE html>",
+        "<html lang='ru'>",
+        "<head><meta charset='UTF-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1.0'>",
+        "<title>404 — Страница не найдена</title>",
+        "<link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>",
+        "<style>",
+        "body{display:flex;align-items:center;justify-content:center;",
+        "min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}",
+        ".box{text-align:center;padding:40px;background:#fff;",
+        "border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}",
+        "h1{font-size:6rem;color:#3b7ddd;margin:0}",
+        "</style></head>",
+        "<body>",
+        "<header></header>",
+        "<main><div class='box'>",
+        "<h1>404</h1>",
+        "<p>Страница не найдена</p>",
+        "<a href='/'>← На главную</a>",
+        "</div></main>",
+        "<footer></footer>",
+        "</body></html>",
+    ]
+    return "\n".join(html_parts)
 
 
 def build_500_page() -> str:
-    """Возвращает HTML-страницу 500."""
-    return """<!DOCTYPE html>
-<html lang="ru">
-<head><meta charset="UTF-8"><title>500</title>
-<link href="/src/frontend/css/bootstrap.min.css" rel="stylesheet">
-<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}.box{text-align:center;padding:40px;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}h1{font-size:6rem;color:#dc3545;margin:0}</style>
-</head><body><header></header><main><div class="box"><h1>500</h1><p>Ошибка сервера</p><a href="/">← На главную</a></div></main><footer></footer></body></html>"""
+    """
+    Возвращает HTML-страницу 500.
+
+    Returns:
+        HTML-строка страницы 500
+    """
+    html_parts: List[str] = [
+        "<!DOCTYPE html>",
+        "<html lang='ru'>",
+        "<head><meta charset='UTF-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1.0'>",
+        "<title>500 — Ошибка сервера</title>",
+        "<link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>",
+        "<style>",
+        "body{display:flex;align-items:center;justify-content:center;",
+        "min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}",
+        ".box{text-align:center;padding:40px;background:#fff;",
+        "border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}",
+        "h1{font-size:6rem;color:#dc3545;margin:0}",
+        "</style></head>",
+        "<body>",
+        "<header></header>",
+        "<main><div class='box'>",
+        "<h1>500</h1>",
+        "<p>Внутренняя ошибка сервера</p>",
+        "<a href='/'>← На главную</a>",
+        "</div></main>",
+        "<footer></footer>",
+        "</body></html>",
+    ]
+    return "\n".join(html_parts)
 
 
+# ---------------------------------------------------------------------------
+# Обработчик HTTP-запросов
+# ---------------------------------------------------------------------------
 class RequestHandler(BaseHTTPRequestHandler):
     """Обработчик HTTP-запросов."""
 
     def log_message(self, format: str, *args: Any) -> None:
-        """Переопределение логирования (исправлен IndexError)."""
+        """
+        Переопределение логирования.
+
+        Args:
+            format: Формат сообщения
+            *args: Аргументы для форматирования
+        """
         if args:
             print(f"[SERVER] {format % args}")
         else:
             print(f"[SERVER] {format}")
 
     def do_GET(self) -> None:
-        """Обработка GET-запросов."""
+        """
+        Обработка GET-запросов.
+
+        Маршруты:
+            - / или /contact.html → страница контактов
+            - /main.html → главная страница
+            - /catalog.html → каталог
+            - /orders.html → заказы
+            - /src/frontend/* → статические файлы
+        """
         parsed_path = urlparse(self.path)
         path: str = parsed_path.path
 
         try:
+            # Статические файлы (CSS, JS, изображения)
             if path.startswith("/src/frontend/"):
                 self._serve_static_file(path)
                 return
 
+            # Маршрутизация HTML-страниц
             html_content: str = ""
-            # На любой корневой запрос или явный запрос контактов возвращаем Контакты
             if path == "/" or path == "/contact.html":
                 html_content = read_html("contact.html")
             elif path == "/main.html":
@@ -111,9 +229,15 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._send_response(500, build_500_page())
 
     def do_POST(self) -> None:
-        """Обработка POST-запросов."""
+        """
+        Обработка POST-запросов.
+
+        Принимает данные формы и выводит их в консоль.
+        """
         try:
-            content_length: int = int(self.headers.get("Content-Length", 0))
+            content_length: int = int(
+                self.headers.get("Content-Length", 0)
+            )
             post_data: str = self.rfile.read(content_length).decode("utf-8")
             parsed: Dict[str, List[str]] = parse_qs(post_data)
 
@@ -126,10 +250,26 @@ class RequestHandler(BaseHTTPRequestHandler):
             print("=" * 50 + "\n")
 
             response: str = (
-                "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
-                "<title>Принято</title><link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>"
-                "<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}.box{text-align:center;padding:40px;background:#fff;border-radius:12px}</style>"
-                "</head><body><header></header><main><div class='box'><h2 style='color:#28a745'>✓ Данные успешно приняты</h2><p>Проверьте консоль сервера.</p><a href='/'>← На главную</a></div></main><footer></footer></body></html>"
+                "<!DOCTYPE html>"
+                "<html><head><meta charset='UTF-8'>"
+                "<title>Принято</title>"
+                "<link href='/src/frontend/css/bootstrap.min.css' "
+                "rel='stylesheet'>"
+                "<style>"
+                "body{display:flex;align-items:center;"
+                "justify-content:center;min-height:100vh;"
+                "font-family:system-ui;background:#f8f9fa;margin:0}"
+                ".box{text-align:center;padding:40px;background:#fff;"
+                "border-radius:12px}"
+                "</style></head><body>"
+                "<header></header>"
+                "<main><div class='box'>"
+                "<h2 style='color:#28a745'>✓ Данные успешно приняты</h2>"
+                "<p>Проверьте консоль сервера.</p>"
+                "<a href='/'>← На главную</a>"
+                "</div></main>"
+                "<footer></footer>"
+                "</body></html>"
             )
             self._send_response(200, response)
 
@@ -138,7 +278,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._send_response(500, build_500_page())
 
     def _serve_static_file(self, path: str) -> None:
-        """Отдаёт статический файл."""
+        """
+        Отдаёт статический файл.
+
+        Args:
+            path: Путь к файлу
+        """
         file_content: bytes = read_static_file(path)
         content_type: str = get_content_type(path)
 
@@ -149,23 +294,36 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(file_content)
 
     def _send_response(self, status_code: int, html_content: str) -> None:
-        """Отправляет HTTP-ответ."""
+        """
+        Отправляет HTTP-ответ.
+
+        Args:
+            status_code: HTTP статус код
+            html_content: HTML содержимое ответа
+        """
         self.send_response(status_code)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         self.wfile.write(html_content.encode("utf-8"))
 
 
+# ---------------------------------------------------------------------------
+# Точка входа
+# ---------------------------------------------------------------------------
 def run_server() -> None:
-    """Запускает HTTP-сервер."""
+    """
+    Запускает HTTP-сервер.
+
+    Функция завершается при нажатии Ctrl+C.
+    """
     server: HTTPServer = HTTPServer((HOST, PORT), RequestHandler)
-    print(f"\n🚀 Сервер запущен: http://{HOST}:{PORT}")
-    print("⏹️  Для остановки нажмите Ctrl+C\n")
+    print(f"\n Сервер запущен: http://{HOST}:{PORT}")
+    print(" Для остановки нажмите Ctrl+C\n")
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n🛑 Сервер остановлен пользователем.")
+        print("\n Сервер остановлен пользователем.")
         server.server_close()
 
     return None
