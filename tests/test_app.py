@@ -17,15 +17,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.backend.app import (
-    RequestHandler,
-    build_404_page,
-    build_500_page,
-    get_content_type,
-    read_html,
-    read_static_file,
-    run_server,
-)
+from src.backend.app import (RequestHandler, build_404_page, build_500_page, get_content_type, read_html,
+                             read_static_file, run_server)
 
 
 def create_mock_handler() -> RequestHandler:
@@ -42,8 +35,7 @@ def create_mock_handler() -> RequestHandler:
     with patch.object(RequestHandler, "handle_one_request"):
         handler = RequestHandler(request, client_address, server)
 
-    # Заменяем методы экземпляра на MagicMock.
-    # type: ignore[assignment] необходим для намеренной подмены методов
+    # Заменяем методы экземпляра на MagicMock
     handler._send_response = MagicMock()  # type: ignore[assignment]
     handler._serve_static_file = MagicMock()  # type: ignore[assignment]
     handler.wfile = MagicMock(spec=io.BytesIO)
@@ -52,8 +44,8 @@ def create_mock_handler() -> RequestHandler:
     handler.end_headers = MagicMock()  # type: ignore[assignment]
     handler.headers = {}  # type: ignore[assignment]
 
-    # Явно создаём rfile как MagicMock с вложенным read
-    mock_rfile = MagicMock()
+    # Явно создаём rfile как MagicMock и приводим тип
+    mock_rfile: MagicMock = MagicMock()
     mock_rfile.read.return_value = b""
     handler.rfile = mock_rfile  # type: ignore[assignment]
 
@@ -81,9 +73,7 @@ class TestReadHtml:
 class TestReadStaticFile:
     """Тесты функции read_static_file()."""
 
-    def test_read_static_file_success(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_success(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест успешного чтения статического файла."""
         test_file = tmp_path / "test.css"
         test_file.write_text("body { color: red; }", encoding="utf-8")
@@ -95,9 +85,7 @@ class TestReadStaticFile:
         content = read_static_file("test.css")
         assert b"color: red" in content
 
-    def test_read_static_file_security(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_security(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест защиты от выхода за пределы директории."""
         import src.backend.app as app_module
 
@@ -118,17 +106,13 @@ class TestGetContentType:
             ("test.js", "application/javascript"),
         ],
     )
-    def test_get_content_type_known_types(
-        self, filepath: str, expected_type: str
-    ) -> None:
+    def test_get_content_type_known_types(self, filepath: str, expected_type: str) -> None:
         """Тест определения MIME-типа для известных расширений."""
         assert get_content_type(filepath) == expected_type
 
     def test_get_content_type_unknown(self) -> None:
         """Тест определения MIME-типа для неизвестного расширения."""
-        assert (
-            get_content_type("test.xyz123") == "application/octet-stream"
-        )
+        assert get_content_type("test.xyz123") == "application/octet-stream"
 
 
 class TestBuildPages:
@@ -154,9 +138,7 @@ class TestDoGet:
     """Тесты метода do_GET()."""
 
     @patch("src.backend.app.read_html")
-    def test_do_get_root_returns_contacts(
-        self, mock_read: MagicMock
-    ) -> None:
+    def test_do_get_root_returns_contacts(self, mock_read: MagicMock) -> None:
         """Тест GET / возвращает страницу контактов."""
         handler = create_mock_handler()
         handler.path = "/"
@@ -165,14 +147,10 @@ class TestDoGet:
         handler.do_GET()
 
         mock_read.assert_called_once_with("contact.html")
-        handler._send_response.assert_called_once_with(
-            200, "<html>Контакты</html>"
-        )  # type: ignore[attr-defined]
+        handler._send_response.assert_called_once_with(200, "<html>Контакты</html>")  # type: ignore[attr-defined]
 
     @patch("src.backend.app.build_404_page")
-    def test_do_get_unknown_path_returns_404(
-        self, mock_404: MagicMock
-    ) -> None:
+    def test_do_get_unknown_path_returns_404(self, mock_404: MagicMock) -> None:
         """Тест GET неизвестного пути возвращает 404."""
         handler = create_mock_handler()
         handler.path = "/unknown.html"
@@ -180,15 +158,11 @@ class TestDoGet:
 
         handler.do_GET()
 
-        handler._send_response.assert_called_once_with(
-            404, "<html>404</html>"
-        )  # type: ignore[attr-defined]
+        handler._send_response.assert_called_once_with(404, "<html>404</html>")  # type: ignore[attr-defined]
 
     @patch("src.backend.app.read_html", side_effect=Exception("Test"))
     @patch("src.backend.app.build_500_page")
-    def test_do_get_internal_error(
-        self, mock_500: MagicMock, mock_read: MagicMock
-    ) -> None:
+    def test_do_get_internal_error(self, mock_500: MagicMock, mock_read: MagicMock) -> None:
         """Тест обработки внутренней ошибки."""
         handler = create_mock_handler()
         handler.path = "/contact.html"
@@ -196,9 +170,7 @@ class TestDoGet:
 
         handler.do_GET()
 
-        handler._send_response.assert_called_once_with(
-            500, "<html>500</html>"
-        )  # type: ignore[attr-defined]
+        handler._send_response.assert_called_once_with(500, "<html>500</html>")  # type: ignore[attr-defined]
 
 
 # ===========================================================================
@@ -207,9 +179,7 @@ class TestDoGet:
 class TestDoPost:
     """Тесты метода do_POST()."""
 
-    def test_do_post_success(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_do_post_success(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест успешного POST-запроса."""
         handler = create_mock_handler()
         handler.path = "/contact.html"
@@ -226,9 +196,7 @@ class TestDoPost:
         assert handler._send_response.called  # type: ignore[attr-defined]
 
     @patch("src.backend.app.build_500_page")
-    def test_do_post_exception(
-        self, mock_500: MagicMock
-    ) -> None:
+    def test_do_post_exception(self, mock_500: MagicMock) -> None:
         """Тест обработки исключения в POST."""
         handler = create_mock_handler()
         handler.path = "/contact.html"
@@ -241,9 +209,7 @@ class TestDoPost:
 
         handler.do_POST()
 
-        handler._send_response.assert_called_once_with(
-            500, "<html>500</html>"
-        )  # type: ignore[attr-defined]
+        handler._send_response.assert_called_once_with(500, "<html>500</html>")  # type: ignore[attr-defined]
 
 
 # ===========================================================================
@@ -265,9 +231,7 @@ class TestRunServer:
 
         run_server()
 
-        mock_server_class.assert_called_once_with(
-            ("127.0.0.1", 8000), RequestHandler
-        )
+        mock_server_class.assert_called_once_with(("127.0.0.1", 8000), RequestHandler)
         mock_server_instance.server_close.assert_called_once()
 
         captured = capsys.readouterr()
@@ -280,9 +244,7 @@ class TestRunServer:
 class TestLogMessage:
     """Тесты метода log_message()."""
 
-    def test_log_message_with_args(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_log_message_with_args(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест вывода лога с аргументами."""
         handler = create_mock_handler()
         handler.log_message("GET %s HTTP/1.1", "/")
@@ -290,9 +252,7 @@ class TestLogMessage:
         captured = capsys.readouterr()
         assert "[SERVER] GET / HTTP/1.1" in captured.out
 
-    def test_log_message_without_args(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_log_message_without_args(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Тест вывода лога без аргументов."""
         handler = create_mock_handler()
         handler.log_message("Simple message")

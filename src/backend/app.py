@@ -68,14 +68,12 @@ def read_static_file(relative_path: str) -> bytes:
     # Убираем префикс "src/frontend/" если он есть
     prefix: str = "src/frontend/"
     if relative_path.startswith(prefix):
-        relative_path = relative_path[len(prefix):]
+        relative_path = relative_path[len(prefix) :]
 
     filepath: str = os.path.join(FRONTEND_STATIC, relative_path)
 
     # Проверка безопасности
-    if not os.path.abspath(filepath).startswith(
-        os.path.abspath(FRONTEND_STATIC)
-    ):
+    if not os.path.abspath(filepath).startswith(os.path.abspath(FRONTEND_STATIC)):
         raise PermissionError("Доступ за пределы frontend/ запрещён")
 
     with open(filepath, "rb") as file:
@@ -235,9 +233,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         Принимает данные формы и выводит их в консоль.
         """
         try:
-            content_length: int = int(
-                self.headers.get("Content-Length", 0)
-            )
+            content_length: int = int(self.headers.get("Content-Length", 0))
             post_data: str = self.rfile.read(content_length).decode("utf-8")
             parsed: Dict[str, List[str]] = parse_qs(post_data)
 
