@@ -7,7 +7,6 @@
     - Подготовки тестовых данных
 """
 
-import os
 import threading
 import time
 from http.client import HTTPConnection

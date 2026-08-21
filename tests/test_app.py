@@ -13,13 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from src.backend.app import (
-    build_404_page,
-    build_500_page,
-    get_content_type,
-    read_html,
-    read_static_file,
-)
+from src.backend.app import build_404_page, build_500_page, get_content_type, read_html, read_static_file
 
 
 class TestReadHtml:
@@ -59,9 +53,7 @@ class TestReadHtml:
 class TestReadStaticFile:
     """Тесты функции read_static_file()."""
 
-    def test_read_static_file_success(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_success(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест успешного чтения статического файла."""
         # Создаём тестовый файл во временной директории
         test_file: Path = tmp_path / "test.css"
@@ -69,6 +61,7 @@ class TestReadStaticFile:
 
         # Подменяем FRONTEND_STATIC на tmp_path
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
 
         # Читаем файл по относительному пути
@@ -76,9 +69,7 @@ class TestReadStaticFile:
         assert isinstance(content, bytes)
         assert b"color: red" in content
 
-    def test_read_static_file_with_prefix(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_with_prefix(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест чтения файла с префиксом src/frontend/."""
         # Создаём структуру src/frontend/css/test.css
         css_dir: Path = tmp_path / "src" / "frontend" / "css"
@@ -89,6 +80,7 @@ class TestReadStaticFile:
         # FRONTEND_STATIC = tmp_path/src/frontend
         frontend_static: str = str(tmp_path / "src" / "frontend")
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", frontend_static)
 
         # Путь с префиксом src/frontend/
@@ -100,24 +92,22 @@ class TestReadStaticFile:
         with pytest.raises(FileNotFoundError):
             read_static_file("nonexistent.css")
 
-    def test_read_static_file_returns_bytes(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_returns_bytes(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест типа возвращаемого значения."""
         test_file: Path = tmp_path / "test.js"
         test_file.write_text("console.log('test');", encoding="utf-8")
 
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
 
         content: bytes = read_static_file("test.js")
         assert isinstance(content, bytes)
 
-    def test_read_static_file_security(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_read_static_file_security(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Тест защиты от выхода за пределы директории."""
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
 
         # Попытка выйти за пределы через ..
@@ -143,9 +133,7 @@ class TestGetContentType:
             ("test.xml", "text/xml"),  # mimetypes возвращает text/xml
         ],
     )
-    def test_get_content_type_known_types(
-        self, filepath: str, expected_type: str
-    ) -> None:
+    def test_get_content_type_known_types(self, filepath: str, expected_type: str) -> None:
         """Тест определения MIME-типа для известных расширений."""
         content_type: str = get_content_type(filepath)
         assert content_type == expected_type
