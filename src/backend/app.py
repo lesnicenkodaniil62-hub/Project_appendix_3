@@ -14,7 +14,7 @@
 import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Dict, List, NoReturn, Optional
+from typing import Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 # ---------------------------------------------------------------------------
@@ -306,23 +306,25 @@ class RequestHandler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 # Точка входа
 # ---------------------------------------------------------------------------
-def run_server() -> NoReturn:
+def run_server() -> None:
     """
     Запускает HTTP-сервер.
 
-    Функция не возвращает управление (serve_forever).
+    Функция завершается при нажатии Ctrl+C.
     """
     server: HTTPServer = HTTPServer((HOST, PORT), RequestHandler)
     print(f"\n Сервер запущен: http://{HOST}:{PORT}")
     print(f" HTML-файлы: {FRONTEND_COMPONENTS}")
     print(f" Статика:    {FRONTEND_STATIC}")
-    print("️  Для остановки нажмите Ctrl+C\n")
+    print(" Для остановки нажмите Ctrl+C\n")
 
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         print("\n Сервер остановлен пользователем.")
         server.server_close()
+
+    return None
 
 
 if __name__ == "__main__":
