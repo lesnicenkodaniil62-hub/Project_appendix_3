@@ -28,7 +28,7 @@ def read_static_file(relative_path: str) -> bytes:
     relative_path = relative_path.lstrip("/")
     prefix: str = "src/frontend/"
     if relative_path.startswith(prefix):
-        relative_path = relative_path[len(prefix):]
+        relative_path = relative_path[len(prefix) :]
 
     filepath: str = os.path.join(FRONTEND_STATIC, relative_path)
 

@@ -1,21 +1,14 @@
 """Юнит-тесты для модуля app.py."""
+
 import io
 import socket
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.backend.app import (
-    RequestHandler,
-    build_404_page,
-    build_500_page,
-    get_content_type,
-    read_html,
-    read_static_file,
-    run_server,
-)
+from src.backend.app import (RequestHandler, build_404_page, build_500_page, get_content_type, read_html,
+                             read_static_file, run_server)
 
 
 def create_mock_handler() -> RequestHandler:
@@ -56,6 +49,7 @@ class TestReadStaticFile:
         test_file.write_text("body { color: red; }", encoding="utf-8")
 
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
 
         content = read_static_file("test.css")
@@ -63,15 +57,17 @@ class TestReadStaticFile:
 
     def test_read_static_file_security(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         import src.backend.app as app_module
+
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
         with pytest.raises(PermissionError):
             read_static_file("../../etc/passwd")
 
 
 class TestGetContentType:
-    @pytest.mark.parametrize("filepath,expected_type", [
-        ("test.html", "text/html"), ("test.css", "text/css"), ("test.js", "application/javascript")
-    ])
+    @pytest.mark.parametrize(
+        "filepath,expected_type",
+        [("test.html", "text/html"), ("test.css", "text/css"), ("test.js", "application/javascript")],
+    )
     def test_get_content_type_known_types(self, filepath: str, expected_type: str) -> None:
         assert get_content_type(filepath) == expected_type
 
@@ -142,7 +138,9 @@ class TestDoPost:
 
 class TestRunServer:
     @patch("src.backend.app.HTTPServer")
-    def test_run_server_creates_and_starts(self, mock_server_class: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_run_server_creates_and_starts(
+        self, mock_server_class: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         mock_server_instance = MagicMock()
         mock_server_class.return_value = mock_server_instance
         mock_server_instance.serve_forever.side_effect = KeyboardInterrupt
