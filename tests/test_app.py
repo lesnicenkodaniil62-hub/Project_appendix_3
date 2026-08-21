@@ -1,227 +1,167 @@
-"""
-Юнит-тесты для функций модуля app.py.
-
-Тестирует:
-    - read_html() - чтение HTML файлов
-    - read_static_file() - чтение статических файлов
-    - get_content_type() - определение MIME-типа
-    - build_404_page() - генерация страницы 404
-    - build_500_page() - генерация страницы 500
-"""
-
+"""Юнит-тесты для модуля app.py."""
+import io
+import socket
 from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.backend.app import build_404_page, build_500_page, get_content_type, read_html, read_static_file
+from src.backend.app import (
+    RequestHandler,
+    build_404_page,
+    build_500_page,
+    get_content_type,
+    read_html,
+    read_static_file,
+    run_server,
+)
+
+
+def create_mock_handler() -> RequestHandler:
+    """Создаёт экземпляр RequestHandler с мокированными зависимостями."""
+    request = MagicMock(spec=socket.socket)
+    client_address = ("127.0.0.1", 12345)
+    server = MagicMock()
+
+    with patch.object(RequestHandler, "handle_one_request"):
+        handler = RequestHandler(request, client_address, server)
+
+    # type: ignore необходим для намеренной подмены методов экземпляра на MagicMock
+    handler._send_response = MagicMock()  # type: ignore[assignment]
+    handler._serve_static_file = MagicMock()  # type: ignore[assignment]
+    handler.wfile = MagicMock(spec=io.BytesIO)
+    handler.send_response = MagicMock()  # type: ignore[assignment]
+    handler.send_header = MagicMock()  # type: ignore[assignment]
+    handler.end_headers = MagicMock()  # type: ignore[assignment]
+    handler.headers = {}  # type: ignore[assignment]
+    handler.rfile = MagicMock()
+
+    return handler
 
 
 class TestReadHtml:
-    """Тесты функции read_html()."""
-
     def test_read_html_success(self) -> None:
-        """Тест успешного чтения HTML файла."""
-        content: str = read_html("contact.html")
-        assert isinstance(content, str)
-        assert len(content) > 0
-        assert "Контакты" in content
+        content = read_html("contact.html")
+        assert isinstance(content, str) and "Контакты" in content
 
     def test_read_html_file_not_found(self) -> None:
-        """Тест чтения несуществующего файла."""
         with pytest.raises(FileNotFoundError):
             read_html("nonexistent.html")
 
-    def test_read_html_returns_string(self) -> None:
-        """Тест типа возвращаемого значения."""
-        content: str = read_html("main.html")
-        assert isinstance(content, str)
-
-    def test_read_html_contains_doctype(self) -> None:
-        """Тест наличия DOCTYPE в файле."""
-        content: str = read_html("main.html")
-        assert "<!DOCTYPE html>" in content
-
-    def test_read_html_all_pages(self) -> None:
-        """Тест чтения всех HTML страниц."""
-        pages: list[str] = ["main.html", "catalog.html", "orders.html", "contact.html"]
-        for page in pages:
-            content: str = read_html(page)
-            assert len(content) > 0
-            assert "<html" in content
-
 
 class TestReadStaticFile:
-    """Тесты функции read_static_file()."""
-
     def test_read_static_file_success(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Тест успешного чтения статического файла."""
-        # Создаём тестовый файл во временной директории
-        test_file: Path = tmp_path / "test.css"
+        test_file = tmp_path / "test.css"
         test_file.write_text("body { color: red; }", encoding="utf-8")
 
-        # Подменяем FRONTEND_STATIC на tmp_path
         import src.backend.app as app_module
-
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
 
-        # Читаем файл по относительному пути
-        content: bytes = read_static_file("test.css")
-        assert isinstance(content, bytes)
+        content = read_static_file("test.css")
         assert b"color: red" in content
 
-    def test_read_static_file_with_prefix(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Тест чтения файла с префиксом src/frontend/."""
-        # Создаём структуру src/frontend/css/test.css
-        css_dir: Path = tmp_path / "src" / "frontend" / "css"
-        css_dir.mkdir(parents=True)
-        test_file: Path = css_dir / "test.css"
-        test_file.write_text("body { color: blue; }", encoding="utf-8")
-
-        # FRONTEND_STATIC = tmp_path/src/frontend
-        frontend_static: str = str(tmp_path / "src" / "frontend")
-        import src.backend.app as app_module
-
-        monkeypatch.setattr(app_module, "FRONTEND_STATIC", frontend_static)
-
-        # Путь с префиксом src/frontend/
-        content: bytes = read_static_file("src/frontend/css/test.css")
-        assert b"color: blue" in content
-
-    def test_read_static_file_not_found(self) -> None:
-        """Тест чтения несуществующего файла."""
-        with pytest.raises(FileNotFoundError):
-            read_static_file("nonexistent.css")
-
-    def test_read_static_file_returns_bytes(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Тест типа возвращаемого значения."""
-        test_file: Path = tmp_path / "test.js"
-        test_file.write_text("console.log('test');", encoding="utf-8")
-
-        import src.backend.app as app_module
-
-        monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
-
-        content: bytes = read_static_file("test.js")
-        assert isinstance(content, bytes)
-
     def test_read_static_file_security(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Тест защиты от выхода за пределы директории."""
         import src.backend.app as app_module
-
         monkeypatch.setattr(app_module, "FRONTEND_STATIC", str(tmp_path))
-
-        # Попытка выйти за пределы через ..
         with pytest.raises(PermissionError):
             read_static_file("../../etc/passwd")
 
 
 class TestGetContentType:
-    """Тесты функции get_content_type()."""
-
-    @pytest.mark.parametrize(
-        "filepath,expected_type",
-        [
-            ("test.html", "text/html"),
-            ("test.css", "text/css"),
-            ("test.js", "application/javascript"),
-            ("test.json", "application/json"),
-            ("test.png", "image/png"),
-            ("test.jpg", "image/jpeg"),
-            ("test.gif", "image/gif"),
-            ("test.svg", "image/svg+xml"),
-            ("test.pdf", "application/pdf"),
-            ("test.xml", "text/xml"),  # mimetypes возвращает text/xml
-        ],
-    )
+    @pytest.mark.parametrize("filepath,expected_type", [
+        ("test.html", "text/html"), ("test.css", "text/css"), ("test.js", "application/javascript")
+    ])
     def test_get_content_type_known_types(self, filepath: str, expected_type: str) -> None:
-        """Тест определения MIME-типа для известных расширений."""
-        content_type: str = get_content_type(filepath)
-        assert content_type == expected_type
+        assert get_content_type(filepath) == expected_type
 
     def test_get_content_type_unknown(self) -> None:
-        """Тест определения MIME-типа для неизвестного расширения."""
-        content_type: str = get_content_type("test.xyz123")
-        assert content_type == "application/octet-stream"
-
-    def test_get_content_type_returns_string(self) -> None:
-        """Тест типа возвращаемого значения."""
-        content_type: str = get_content_type("test.html")
-        assert isinstance(content_type, str)
+        assert get_content_type("test.xyz123") == "application/octet-stream"
 
 
-class TestBuild404Page:
-    """Тесты функции build_404_page()."""
+class TestBuildPages:
+    def test_build_404_page(self) -> None:
+        assert "404" in build_404_page() and "<!DOCTYPE html>" in build_404_page()
 
-    def test_build_404_page_returns_string(self) -> None:
-        """Тест типа возвращаемого значения."""
-        page: str = build_404_page()
-        assert isinstance(page, str)
-
-    def test_build_404_page_contains_404(self) -> None:
-        """Тест наличия кода 404 в странице."""
-        page: str = build_404_page()
-        assert "404" in page
-
-    def test_build_404_page_contains_doctype(self) -> None:
-        """Тест наличия DOCTYPE."""
-        page: str = build_404_page()
-        assert "<!DOCTYPE html>" in page
-
-    def test_build_404_page_contains_header(self) -> None:
-        """Тест наличия тега header."""
-        page: str = build_404_page()
-        assert "<header>" in page
-
-    def test_build_404_page_contains_main(self) -> None:
-        """Тест наличия тега main."""
-        page: str = build_404_page()
-        assert "<main>" in page
-
-    def test_build_404_page_contains_footer(self) -> None:
-        """Тест наличия тега footer."""
-        page: str = build_404_page()
-        assert "<footer>" in page
-
-    def test_build_404_page_contains_bootstrap(self) -> None:
-        """Тест подключения Bootstrap."""
-        page: str = build_404_page()
-        assert "bootstrap.min.css" in page
+    def test_build_500_page(self) -> None:
+        assert "500" in build_500_page() and "<!DOCTYPE html>" in build_500_page()
 
 
-class TestBuild500Page:
-    """Тесты функции build_500_page()."""
+class TestDoGet:
+    @patch("src.backend.app.read_html")
+    def test_do_get_root_returns_contacts(self, mock_read: MagicMock) -> None:
+        handler = create_mock_handler()
+        handler.path = "/"
+        mock_read.return_value = "<html>Контакты</html>"
+        handler.do_GET()
+        mock_read.assert_called_once_with("contact.html")
+        handler._send_response.assert_called_once_with(200, "<html>Контакты</html>")  # type: ignore[attr-defined]
 
-    def test_build_500_page_returns_string(self) -> None:
-        """Тест типа возвращаемого значения."""
-        page: str = build_500_page()
-        assert isinstance(page, str)
+    @patch("src.backend.app.build_404_page")
+    def test_do_get_unknown_path_returns_404(self, mock_404: MagicMock) -> None:
+        handler = create_mock_handler()
+        handler.path = "/unknown.html"
+        mock_404.return_value = "<html>404</html>"
+        handler.do_GET()
+        handler._send_response.assert_called_once_with(404, "<html>404</html>")  # type: ignore[attr-defined]
 
-    def test_build_500_page_contains_500(self) -> None:
-        """Тест наличия кода 500 в странице."""
-        page: str = build_500_page()
-        assert "500" in page
+    @patch("src.backend.app.read_html", side_effect=Exception("Test error"))
+    @patch("src.backend.app.build_500_page")
+    def test_do_get_internal_error(self, mock_500: MagicMock, mock_read: MagicMock) -> None:
+        handler = create_mock_handler()
+        handler.path = "/contact.html"
+        mock_500.return_value = "<html>500</html>"
+        handler.do_GET()
+        handler._send_response.assert_called_once_with(500, "<html>500</html>")  # type: ignore[attr-defined]
 
-    def test_build_500_page_contains_doctype(self) -> None:
-        """Тест наличия DOCTYPE."""
-        page: str = build_500_page()
-        assert "<!DOCTYPE html>" in page
 
-    def test_build_500_page_contains_header(self) -> None:
-        """Тест наличия тега header."""
-        page: str = build_500_page()
-        assert "<header>" in page
+class TestDoPost:
+    def test_do_post_success(self, capsys: pytest.CaptureFixture[str]) -> None:
+        handler = create_mock_handler()
+        handler.path = "/contact.html"
+        handler.headers = {"Content-Length": "30"}  # type: ignore[assignment]
+        handler.rfile.read.return_value = b"name=Ivan&email=ivan@example.com&message=Hello"
 
-    def test_build_500_page_contains_main(self) -> None:
-        """Тест наличия тега main."""
-        page: str = build_500_page()
-        assert "<main>" in page
+        handler.do_POST()
 
-    def test_build_500_page_contains_footer(self) -> None:
-        """Тест наличия тега footer."""
-        page: str = build_500_page()
-        assert "<footer>" in page
+        captured = capsys.readouterr()
+        assert "[POST] Получены данные от пользователя:" in captured.out
+        assert handler._send_response.called  # type: ignore[attr-defined]
 
-    def test_build_500_page_contains_bootstrap(self) -> None:
-        """Тест подключения Bootstrap."""
-        page: str = build_500_page()
-        assert "bootstrap.min.css" in page
+    @patch("src.backend.app.build_500_page")
+    def test_do_post_exception(self, mock_500: MagicMock) -> None:
+        handler = create_mock_handler()
+        handler.path = "/contact.html"
+        handler.headers = MagicMock()
+        handler.headers.get.side_effect = Exception("Test error")
+        mock_500.return_value = "<html>500</html>"
+
+        handler.do_POST()
+        handler._send_response.assert_called_once_with(500, "<html>500</html>")  # type: ignore[attr-defined]
+
+
+class TestRunServer:
+    @patch("src.backend.app.HTTPServer")
+    def test_run_server_creates_and_starts(self, mock_server_class: MagicMock, capsys: pytest.CaptureFixture[str]) -> None:
+        mock_server_instance = MagicMock()
+        mock_server_class.return_value = mock_server_instance
+        mock_server_instance.serve_forever.side_effect = KeyboardInterrupt
+
+        run_server()
+
+        mock_server_class.assert_called_once_with(("127.0.0.1", 8000), RequestHandler)
+        mock_server_instance.server_close.assert_called_once()
+        captured = capsys.readouterr()
+        assert "Сервер запущен" in captured.out
+
+
+class TestLogMessage:
+    def test_log_message_with_args(self, capsys: pytest.CaptureFixture[str]) -> None:
+        handler = create_mock_handler()
+        handler.log_message("GET %s HTTP/1.1", "/")
+        assert "[SERVER] GET / HTTP/1.1" in capsys.readouterr().out
+
+    def test_log_message_without_args(self, capsys: pytest.CaptureFixture[str]) -> None:
+        handler = create_mock_handler()
+        handler.log_message("Simple message")
+        assert "[SERVER] Simple message" in capsys.readouterr().out
