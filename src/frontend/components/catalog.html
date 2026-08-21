@@ -1,3 +1,19 @@
+<!--
+    ====================================================================
+    Файл: catalog.html
+    Описание: Страница каталога. Отображает карточки с превью (Thumbnail),
+              описанием, кнопками View/Edit и временем чтения.
+
+    ====================================================================
+
+    Структура страницы:
+    - <header>  : Боковая панель навигации (sidebar)
+    - <main>    : Основной контент (заголовок "Каталог", сетка карточек 2x2)
+    - <footer>  : Подвал с копирайтом
+
+    Активный пункт меню: "Категории"
+    ====================================================================
+-->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,6 +23,7 @@
     <link href="/src/frontend/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
+        /* ===== Общие стили ===== */
         body {
             display: flex;
             min-height: 100vh;
@@ -14,6 +31,7 @@
             font-family: system-ui, -apple-system, sans-serif;
         }
 
+        /* ===== Sidebar ===== */
         .sidebar {
             width: 220px;
             min-height: 100vh;
@@ -154,6 +172,7 @@
             border-top: 1px solid #495057;
         }
 
+        /* ===== Основной контент ===== */
         .main-content {
             margin-left: 220px;
             flex: 1;
@@ -169,7 +188,7 @@
             margin-bottom: 40px;
         }
 
-        /* Catalog cards */
+        /* ===== Карточки каталога ===== */
         .catalog-card {
             border: 1px solid #dee2e6;
             border-radius: 8px;
@@ -214,58 +233,72 @@
             font-size: 0.85rem;
             color: #6c757d;
         }
+
+        /* ===== Подвал ===== */
+        footer {
+            margin-left: 220px;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
 
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <span class="brand-icon">B</span>
-            Меню
-        </div>
-
-        <ul class="sidebar-nav">
-            <li>
-                <a href="main.html">
-                    <i class="bi bi-house-door"></i>
-                    Главная
-                </a>
-            </li>
-            <li>
-                <a href="catalog.html" class="active">
-                    <i class="bi bi-grid"></i>
-                    Категории
-                </a>
-            </li>
-            <li>
-                <a href="orders.html">
-                    <i class="bi bi-cart"></i>
-                    Заказы
-                </a>
-            </li>
-            <li>
-                <a href="contact.html">
-                    <i class="bi bi-person-circle"></i>
-                    Контакты
-                </a>
-            </li>
-        </ul>
-
-        <div class="sidebar-user">
-            <div class="user-dropdown">
-                <a href="#">Профиль</a>
-                <a href="#">Выход</a>
+    <!-- ===== HEADER: Боковая панель навигации ===== -->
+    <header>
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-icon">B</span>
+                Меню
             </div>
-            <div class="user-toggle">
-                <img src="https://via.placeholder.com/32" alt="avatar">
-                Пользователь <i class="bi bi-chevron-down" style="font-size:0.75rem;margin-left:auto;"></i>
-            </div>
-        </div>
-    </aside>
 
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="main.html">
+                        <i class="bi bi-house-door"></i>
+                        Главная
+                    </a>
+                </li>
+                <li>
+                    <a href="catalog.html" class="active">
+                        <i class="bi bi-grid"></i>
+                        Категории
+                    </a>
+                </li>
+                <li>
+                    <a href="orders.html">
+                        <i class="bi bi-cart"></i>
+                        Заказы
+                    </a>
+                </li>
+                <li>
+                    <a href="contact.html">
+                        <i class="bi bi-person-circle"></i>
+                        Контакты
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-user">
+                <div class="user-dropdown">
+                    <a href="#">Профиль</a>
+                    <a href="#">Выход</a>
+                </div>
+                <div class="user-toggle">
+                    <img src="https://via.placeholder.com/32" alt="avatar">
+                    Пользователь <i class="bi bi-chevron-down" style="font-size:0.75rem;margin-left:auto;"></i>
+                </div>
+            </div>
+        </aside>
+    </header>
+
+    <!-- ===== MAIN: Основной контент ===== -->
     <main class="main-content">
         <h1 class="page-title">Каталог</h1>
 
+        <!-- Сетка карточек каталога (2 колонки) -->
         <div class="row g-4 justify-content-center">
             <div class="col-md-6 col-lg-5">
                 <div class="catalog-card">
