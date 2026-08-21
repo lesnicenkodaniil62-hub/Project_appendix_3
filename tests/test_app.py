@@ -44,8 +44,8 @@ def create_mock_handler() -> RequestHandler:
     handler.end_headers = MagicMock()  # type: ignore[assignment]
     handler.headers = {}  # type: ignore[assignment]
 
-    # Явно создаём rfile как MagicMock и приводим тип
-    mock_rfile: MagicMock = MagicMock()
+    # Создаём базовый rfile (будет переопределён в тестах)
+    mock_rfile = MagicMock()
     mock_rfile.read.return_value = b""
     handler.rfile = mock_rfile  # type: ignore[assignment]
 
@@ -186,7 +186,11 @@ class TestDoPost:
         handler.headers = {"Content-Length": "30"}  # type: ignore[assignment]
 
         form_data = "name=Ivan&email=ivan@example.com&message=Hello"
-        handler.rfile.read.return_value = form_data.encode("utf-8")
+
+        # Создаём локальный мок для rfile
+        mock_rfile = MagicMock()
+        mock_rfile.read.return_value = form_data.encode("utf-8")
+        handler.rfile = mock_rfile  # type: ignore[assignment]
 
         handler.do_POST()
 
