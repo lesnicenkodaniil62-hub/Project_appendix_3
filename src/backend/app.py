@@ -14,14 +14,13 @@
 import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 # ---------------------------------------------------------------------------
 # Пути к файлам
 # ---------------------------------------------------------------------------
 BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT: str = os.path.dirname(BASE_DIR)
 FRONTEND_COMPONENTS: str = os.path.join(BASE_DIR, "frontend", "components")
 FRONTEND_STATIC: str = os.path.join(BASE_DIR, "frontend")
 
@@ -65,6 +64,12 @@ def read_static_file(relative_path: str) -> bytes:
         PermissionError: Если путь выходит за пределы frontend/
     """
     relative_path = relative_path.lstrip("/")
+
+    # Убираем префикс "src/frontend/" если он есть
+    prefix: str = "src/frontend/"
+    if relative_path.startswith(prefix):
+        relative_path = relative_path[len(prefix) :]
+
     filepath: str = os.path.join(FRONTEND_STATIC, relative_path)
 
     # Проверка безопасности
@@ -96,35 +101,31 @@ def build_404_page() -> str:
     Returns:
         HTML-строка страницы 404
     """
-    return """<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 — Страница не найдена</title>
-    <link href="/src/frontend/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { display: flex; align-items: center; justify-content: center;
-               min-height: 100vh; font-family: system-ui, sans-serif; background: #f8f9fa; margin: 0; }
-        .box { text-align: center; padding: 40px; background: #fff;
-               border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .box h1 { font-size: 6rem; color: #3b7ddd; margin: 0; }
-        .box p  { color: #6c757d; font-size: 1.1rem; }
-        .box a  { color: #3b7ddd; text-decoration: none; }
-    </style>
-</head>
-<body>
-    <header></header>
-    <main>
-        <div class="box">
-            <h1>404</h1>
-            <p>Страница не найдена</p>
-            <a href="/">← Вернуться на главную</a>
-        </div>
-    </main>
-    <footer></footer>
-</body>
-</html>"""
+    html_parts: List[str] = [
+        "<!DOCTYPE html>",
+        "<html lang='ru'>",
+        "<head><meta charset='UTF-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1.0'>",
+        "<title>404 — Страница не найдена</title>",
+        "<link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>",
+        "<style>",
+        "body{display:flex;align-items:center;justify-content:center;",
+        "min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}",
+        ".box{text-align:center;padding:40px;background:#fff;",
+        "border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}",
+        "h1{font-size:6rem;color:#3b7ddd;margin:0}",
+        "</style></head>",
+        "<body>",
+        "<header></header>",
+        "<main><div class='box'>",
+        "<h1>404</h1>",
+        "<p>Страница не найдена</p>",
+        "<a href='/'>← На главную</a>",
+        "</div></main>",
+        "<footer></footer>",
+        "</body></html>",
+    ]
+    return "\n".join(html_parts)
 
 
 def build_500_page() -> str:
@@ -134,35 +135,31 @@ def build_500_page() -> str:
     Returns:
         HTML-строка страницы 500
     """
-    return """<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>500 — Ошибка сервера</title>
-    <link href="/src/frontend/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { display: flex; align-items: center; justify-content: center;
-               min-height: 100vh; font-family: system-ui, sans-serif; background: #f8f9fa; margin: 0; }
-        .box { text-align: center; padding: 40px; background: #fff;
-               border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .box h1 { font-size: 6rem; color: #dc3545; margin: 0; }
-        .box p  { color: #6c757d; font-size: 1.1rem; }
-        .box a  { color: #3b7ddd; text-decoration: none; }
-    </style>
-</head>
-<body>
-    <header></header>
-    <main>
-        <div class="box">
-            <h1>500</h1>
-            <p>Внутренняя ошибка сервера</p>
-            <a href="/">← Вернуться на главную</a>
-        </div>
-    </main>
-    <footer></footer>
-</body>
-</html>"""
+    html_parts: List[str] = [
+        "<!DOCTYPE html>",
+        "<html lang='ru'>",
+        "<head><meta charset='UTF-8'>",
+        "<meta name='viewport' content='width=device-width, initial-scale=1.0'>",
+        "<title>500 — Ошибка сервера</title>",
+        "<link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>",
+        "<style>",
+        "body{display:flex;align-items:center;justify-content:center;",
+        "min-height:100vh;font-family:system-ui;background:#f8f9fa;margin:0}",
+        ".box{text-align:center;padding:40px;background:#fff;",
+        "border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}",
+        "h1{font-size:6rem;color:#dc3545;margin:0}",
+        "</style></head>",
+        "<body>",
+        "<header></header>",
+        "<main><div class='box'>",
+        "<h1>500</h1>",
+        "<p>Внутренняя ошибка сервера</p>",
+        "<a href='/'>← На главную</a>",
+        "</div></main>",
+        "<footer></footer>",
+        "</body></html>",
+    ]
+    return "\n".join(html_parts)
 
 
 # ---------------------------------------------------------------------------
@@ -171,7 +168,7 @@ def build_500_page() -> str:
 class RequestHandler(BaseHTTPRequestHandler):
     """Обработчик HTTP-запросов."""
 
-    def log_message(self, format: str, *args: object) -> None:
+    def log_message(self, format: str, *args: Any) -> None:
         """
         Переопределение логирования.
 
@@ -179,17 +176,20 @@ class RequestHandler(BaseHTTPRequestHandler):
             format: Формат сообщения
             *args: Аргументы для форматирования
         """
-        print(f"[SERVER] {args[0]}")
+        if args:
+            print(f"[SERVER] {format % args}")
+        else:
+            print(f"[SERVER] {format}")
 
     def do_GET(self) -> None:
         """
         Обработка GET-запросов.
 
         Маршруты:
-            - / или /main.html → главная страница
+            - / или /contact.html → страница контактов
+            - /main.html → главная страница
             - /catalog.html → каталог
             - /orders.html → заказы
-            - /contact.html → контакты
             - /src/frontend/* → статические файлы
         """
         parsed_path = urlparse(self.path)
@@ -203,14 +203,14 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             # Маршрутизация HTML-страниц
             html_content: str = ""
-            if path == "/" or path == "/main.html":
+            if path == "/" or path == "/contact.html":
+                html_content = read_html("contact.html")
+            elif path == "/main.html":
                 html_content = read_html("main.html")
             elif path == "/catalog.html":
                 html_content = read_html("catalog.html")
             elif path == "/orders.html":
                 html_content = read_html("orders.html")
-            elif path == "/contact.html":
-                html_content = read_html("contact.html")
             else:
                 self._send_response(404, build_404_page())
                 return
@@ -246,21 +246,21 @@ class RequestHandler(BaseHTTPRequestHandler):
             print("=" * 50 + "\n")
 
             response: str = (
-                "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
-                "<title>Данные приняты</title>"
-                "<link href='/src/frontend/css/bootstrap.min.css' rel='stylesheet'>"
+                "<!DOCTYPE html>"
+                "<html><head><meta charset='UTF-8'>"
+                "<title>Принято</title>"
+                "<link href='/src/frontend/css/bootstrap.min.css' "
+                "rel='stylesheet'>"
                 "<style>"
-                "body { display: flex; align-items: center; justify-content: center;"
-                "min-height: 100vh; font-family: system-ui; background: #f8f9fa; margin: 0; }"
-                ".box { text-align: center; padding: 40px; background: #fff;"
-                "border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }"
-                ".box h2 { color: #28a745; margin: 0 0 16px 0; }"
-                ".box a { color: #3b7ddd; text-decoration: none; }"
+                "body{display:flex;align-items:center;"
+                "justify-content:center;min-height:100vh;"
+                "font-family:system-ui;background:#f8f9fa;margin:0}"
+                ".box{text-align:center;padding:40px;background:#fff;"
+                "border-radius:12px}"
                 "</style></head><body>"
                 "<header></header>"
                 "<main><div class='box'>"
-                "<h2>✓ Данные успешно приняты</h2>"
+                "<h2 style='color:#28a745'>✓ Данные успешно приняты</h2>"
                 "<p>Проверьте консоль сервера.</p>"
                 "<a href='/'>← На главную</a>"
                 "</div></main>"
@@ -314,8 +314,6 @@ def run_server() -> None:
     """
     server: HTTPServer = HTTPServer((HOST, PORT), RequestHandler)
     print(f"\n Сервер запущен: http://{HOST}:{PORT}")
-    print(f" HTML-файлы: {FRONTEND_COMPONENTS}")
-    print(f" Статика:    {FRONTEND_STATIC}")
     print(" Для остановки нажмите Ctrl+C\n")
 
     try:
