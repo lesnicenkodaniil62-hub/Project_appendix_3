@@ -65,6 +65,12 @@ def read_static_file(relative_path: str) -> bytes:
         PermissionError: Если путь выходит за пределы frontend/
     """
     relative_path = relative_path.lstrip("/")
+
+    # Убираем префикс "src/frontend/" если он есть
+    prefix: str = "src/frontend/"
+    if relative_path.startswith(prefix):
+        relative_path = relative_path[len(prefix) :]
+
     filepath: str = os.path.join(FRONTEND_STATIC, relative_path)
 
     # Проверка безопасности
